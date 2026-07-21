@@ -24,6 +24,8 @@ def process(db:Session, sub:Submission, data:bytes):
     sub.completed_at=datetime.now(timezone.utc); db.commit(); update_readiness(db,sub.partner_id)
 def update_readiness(db:Session,partner_id:int):
     partner=db.get(Partner,partner_id); items=db.scalars(select(ChecklistItem).where(ChecklistItem.partner_id==partner_id)).all(); score=sum(i.weight for i in items if i.status=="complete")
+    if partner is None:
+        return
     latest=db.scalar(select(Submission).where(Submission.partner_id==partner_id).order_by(Submission.received_at.desc()))
     if latest and latest.status=="succeeded": score=max(score,50)
     partner.readiness_score=min(score,100); partner.status="launch_ready" if score==100 else ("action_required" if latest and latest.status!="succeeded" else "in_progress"); db.commit()

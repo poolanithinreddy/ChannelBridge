@@ -118,7 +118,9 @@ def issues(submission_id:int,severity:str|None=None,search:str|None=None,db:Sess
     return [serialize_issue(i) for i in db.scalars(q)]
 @router.get("/partners/{partner_id}/readiness")
 def readiness(partner_id:int,db:Session=Depends(get_db),user:User=Depends(current_user)):
-    scope_partner(user,partner_id);p=db.get(Partner,partner_id);items=db.scalars(select(ChecklistItem).where(ChecklistItem.partner_id==partner_id)).all();return {"score":p.readiness_score,"status":p.status,"calculation":[{"title":i.title,"weight":i.weight,"earned":i.weight if i.status=="complete" else 0,"status":i.status} for i in items]}
+    scope_partner(user,partner_id);p=db.get(Partner,partner_id)
+    if p is None: raise HTTPException(404,"Partner not found")
+    items=db.scalars(select(ChecklistItem).where(ChecklistItem.partner_id==partner_id)).all();return {"score":p.readiness_score,"status":p.status,"calculation":[{"title":i.title,"weight":i.weight,"earned":i.weight if i.status=="complete" else 0,"status":i.status} for i in items]}
 @router.get("/partners/{partner_id}/checklist")
 def checklist(partner_id:int,db:Session=Depends(get_db),user:User=Depends(current_user)): scope_partner(user,partner_id);return db.scalars(select(ChecklistItem).where(ChecklistItem.partner_id==partner_id)).all()
 @router.patch("/checklist-items/{item_id}")
@@ -162,4 +164,3 @@ def audits(partner_id:int|None=None,db:Session=Depends(get_db),user:User=Depends
     q=select(AuditEvent).order_by(AuditEvent.created_at.desc()).limit(100)
     if partner_id:q=q.where(AuditEvent.partner_id==partner_id)
     return db.scalars(q).all()
-

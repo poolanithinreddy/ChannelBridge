@@ -23,7 +23,11 @@ def parse_feed(data: bytes, fmt: str):
     if root.tag!="channelbridge_feed": raise ValueError("Unexpected XML root; expected channelbridge_feed")
     programs=[]
     for p in root.findall("./programs/program"):
-        item={c.tag:c.text for c in p if c.tag not in ("territories","availability","artwork")}
+        item: dict[str, object] = {
+            c.tag: c.text
+            for c in p
+            if c.tag not in ("territories", "availability", "artwork")
+        }
         item["territories"]=[x.text for x in p.findall("./territories/territory")]
         art=p.find("artwork"); item["artwork"]={c.tag:c.text for c in art} if art is not None else None
         item["availability"]=[{c.tag:c.text for c in w} for w in p.findall("./availability/window")]
@@ -70,4 +74,3 @@ def validate(payload: dict)->list[Finding]:
                 if end<=start: add("AVAILABILITY_ORDER","dates_timezones","error","Availability ends before or at its start.","Set ends_at later than starts_at.","availability")
             except ValueError: add("DATETIME_INVALID","dates_timezones","error","Availability contains an invalid ISO 8601 timestamp.","Use a timezone-aware value such as 2027-01-01T00:00:00Z.","availability")
     return out
-
